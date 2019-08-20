@@ -19,131 +19,133 @@ import org.apache.flume.Context;
 
 /**
  * Helper class to manage hibernate sessions and perform queries
- * 
- * @author <a href="mailto:mvalle@keedio.com">Marcelo Valle</a>
  *
+ * @author <a href="mailto:mvalle@keedio.com">Marcelo Valle</a>
  */
 public class HibernateHelper {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(HibernateHelper.class);
+    private static final Logger LOG = LoggerFactory
+            .getLogger(HibernateHelper.class);
 
-	private static SessionFactory factory;
-	private Session session;
-	private ServiceRegistry serviceRegistry;
-	private Configuration config;
-	private SQLSourceHelper sqlSourceHelper;
+    private static SessionFactory factory;
+    private Session session;
+    private ServiceRegistry serviceRegistry;
+    private Configuration config;
+    private SQLSourceHelper sqlSourceHelper;
 
-	/**
-	 * Constructor to initialize hibernate configuration parameters
-	 * @param sqlSourceHelper Contains the configuration parameters from flume config file
-	 */
-	public HibernateHelper(SQLSourceHelper sqlSourceHelper) {
+    /**
+     * Constructor to initialize hibernate configuration parameters
+     *
+     * @param sqlSourceHelper Contains the configuration parameters from flume config file
+     */
+    public HibernateHelper(SQLSourceHelper sqlSourceHelper) {
 
-		this.sqlSourceHelper = sqlSourceHelper;
-		Context context = sqlSourceHelper.getContext();
+        this.sqlSourceHelper = sqlSourceHelper;
+        Context context = sqlSourceHelper.getContext();
 
-		/* check for mandatory propertis */
-		sqlSourceHelper.checkMandatoryProperties();
+        /* check for mandatory propertis */
+        sqlSourceHelper.checkMandatoryProperties();
 
-		Map<String,String> hibernateProperties = context.getSubProperties("hibernate.");
-		Iterator<Map.Entry<String,String>> it = hibernateProperties.entrySet().iterator();
-		
-		config = new Configuration();
-		Map.Entry<String, String> e;
-		
-		while (it.hasNext()){
-			e = it.next();
-			config.setProperty("hibernate." + e.getKey(), e.getValue());
-		}
+        Map<String, String> hibernateProperties = context.getSubProperties("hibernate.");
+        Iterator<Map.Entry<String, String>> it = hibernateProperties.entrySet().iterator();
 
-	}
+        config = new Configuration();
+        Map.Entry<String, String> e;
 
-	/**
-	 * Connect to database using hibernate
-	 */
-	public void establishSession() {
+        while (it.hasNext()) {
+            e = it.next();
+            config.setProperty("hibernate." + e.getKey(), e.getValue());
+        }
 
-		LOG.info("Opening hibernate session");
+    }
 
-		serviceRegistry = new StandardServiceRegistryBuilder()
-				.applySettings(config.getProperties()).build();
-		factory = config.buildSessionFactory(serviceRegistry);
-		session = factory.openSession();
-		session.setCacheMode(CacheMode.IGNORE);
-		
-		session.setDefaultReadOnly(sqlSourceHelper.isReadOnlySession());
-	}
+    /**
+     * Connect to database using hibernate
+     */
+    public void establishSession() {
 
-	/**
-	 * Close database connection
-	 */
-	public void closeSession() {
+        LOG.info("Opening hibernate session");
 
-		LOG.info("Closing hibernate session");
+        serviceRegistry = new StandardServiceRegistryBuilder()
+                .applySettings(config.getProperties()).build();
+        factory = config.buildSessionFactory(serviceRegistry);
+        session = factory.openSession();
+        session.setCacheMode(CacheMode.IGNORE);
 
-		session.close();
-		factory.close();
-	}
+        session.setDefaultReadOnly(sqlSourceHelper.isReadOnlySession());
+    }
 
-	/**
-	 * Execute the selection query in the database
-	 * @return The query result. Each Object is a cell content. <p>
-	 * The cell contents use database types (date,int,string...), 
-	 * keep in mind in case of future conversions/castings.
-	 * @throws InterruptedException 
-	 */
-	@SuppressWarnings("unchecked")
-	public List<List<Object>> executeQuery() throws InterruptedException {
-		
-		List<List<Object>> rowsList = new ArrayList<List<Object>>() ;
-		Query query;
-		
-		if (!session.isConnected()){
-			resetConnection();
-		}
-				
-		if (sqlSourceHelper.isCustomQuerySet()){
-			
-			query = session.createSQLQuery(sqlSourceHelper.buildQuery());
-			
-			if (sqlSourceHelper.getMaxRows() != 0){
-				query = query.setMaxResults(sqlSourceHelper.getMaxRows());
-			}			
-		}
-		else
-		{
-			query = session
-					.createSQLQuery(sqlSourceHelper.getQuery())
-					.setFirstResult(Integer.parseInt(sqlSourceHelper.getCurrentIndex()));
-			
-			if (sqlSourceHelper.getMaxRows() != 0){
-				query = query.setMaxResults(sqlSourceHelper.getMaxRows());
-			}
-		}
-		
-		try {
-			rowsList = query.setFetchSize(sqlSourceHelper.getMaxRows()).setResultTransformer(Transformers.TO_LIST).list();
-		}catch (Exception e){
-			LOG.error("Exception thrown, resetting connection.",e);
-			resetConnection();
-		}
-		
-		if (!rowsList.isEmpty()){
-			sqlSourceHelper.setCurrentIndex(Integer.toString((Integer.parseInt(sqlSourceHelper.getCurrentIndex())
-					+ rowsList.size())));
-		}
-		
-		return rowsList;
-	}
+    /**
+     * Close database connection
+     */
+    public void closeSession() {
 
-	private void resetConnection() throws InterruptedException{
-		if(session.isOpen()){
-			session.close();
-			factory.close();
-		} else {
-			establishSession();
-		}
-		
-	}
+        LOG.info("Closing hibernate session");
+
+        session.close();
+        factory.close();
+    }
+
+    /**
+     * Execute the selection query in the database
+     *
+     * @return The query result. Each Object is a cell content. <p>
+     * The cell contents use database types (date,int,string...),
+     * keep in mind in case of future conversions/castings.
+     * @throws InterruptedException
+     */
+    @SuppressWarnings("unchecked")
+    public List<List<Object>> executeQuery() throws InterruptedException {
+
+        List<List<Object>> rowsList = new ArrayList<List<Object>>();
+        Query query;
+        String currentTime = "";
+        if (!session.isConnected()) {
+            resetConnection();
+        }
+
+        if (sqlSourceHelper.isCustomQuerySet()) {
+            LOG.warn("This Plugin is altered by hcc.Because of removing the MaxRows ,please make the batch not too " +
+                    "big ...");
+            List<List<Object>> currentTimeList =
+                    session.createSQLQuery("select unix_timestamp(now())").setResultTransformer(Transformers.TO_LIST).list();
+            currentTime = currentTimeList.get(0).get(0).toString().substring(0, 10);
+            currentTime = Integer.toString((Integer.valueOf(currentTime) - 10));
+            query = session.createSQLQuery(sqlSourceHelper.buildQuery(currentTime));
+
+            if (sqlSourceHelper.getMaxRows() != 0) {
+                LOG.warn("plugin altered by hcc. please set max.rows = 0 !!! ");
+            }
+        } else {
+            LOG.error("plugins altered by hcc. please set CustomQuery!!! Exception thrown, resetting connection.");
+            resetConnection();
+            return rowsList;
+        }
+
+        try {
+            rowsList =
+                    query.setFetchSize(sqlSourceHelper.getMaxRows()).setResultTransformer(Transformers.TO_LIST).list();
+        } catch (Exception e) {
+            LOG.error("Exception thrown, resetting connection.", e);
+            resetConnection();
+        }
+
+        if (!rowsList.isEmpty()) {
+            sqlSourceHelper.setCurrentIndex(currentTime);
+        }
+
+        return rowsList;
+    }
+
+    private void resetConnection() throws InterruptedException {
+        if (session.isOpen()) {
+            session.close();
+            factory.close();
+        } else {
+            establishSession();
+        }
+
+    }
+
+
 }

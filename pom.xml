@@ -45,11 +45,19 @@
         <url>https://github.com/keedio/flume-ng-sql-source.git</url>
     </scm>
 
+    <repositories>
+        <repository>
+            <id>flume</id>
+            <name>flume-ng</name>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+        </repository>
+    </repositories>
     <dependencies>
+
         <dependency>
             <groupId>org.apache.flume</groupId>
             <artifactId>flume-ng-core</artifactId>
-            <version>1.8.0</version>
+            <version>1.8.0-cdh6.1.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -149,8 +157,8 @@
         </plugins>
     </build>
     <organization>
-    	<name>Keedio</name>
-    	<url>www.keedio.org</url>
+        <name>Keedio</name>
+        <url>www.keedio.org</url>
     </organization>
 </project>
 
