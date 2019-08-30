@@ -111,11 +111,12 @@ public class HibernateHelper {
                     session.createSQLQuery("select unix_timestamp(now())").setResultTransformer(Transformers.TO_LIST).list();
             currentTime = currentTimeList.get(0).get(0).toString().substring(0, 10);
             currentTime = Integer.toString((Integer.valueOf(currentTime) - 10));
+            currentTime = min(sqlSourceHelper.getCurrentIndex(),currentTime,600);
             query = session.createSQLQuery(sqlSourceHelper.buildQuery(currentTime));
 
-            if (sqlSourceHelper.getMaxRows() != 0) {
-                LOG.warn("plugin altered by hcc. please set max.rows = 0 !!! ");
-            }
+//            if (sqlSourceHelper.getMaxRows() != 0) {
+//                LOG.warn("plugin altered by hcc. please set max.rows = 0 !!! ");
+//            }
         } else {
             LOG.error("plugins altered by hcc. please set CustomQuery!!! Exception thrown, resetting connection.");
             resetConnection();
@@ -147,5 +148,17 @@ public class HibernateHelper {
 
     }
 
-
+    private String min(String str1, String str2, int term) {
+        Long l1 = Long.valueOf(str1);
+        Long l2 = Long.valueOf(str2);
+        if (l1 + 1800 >= l2) {
+            return l2.toString();
+        } else {
+            l1 += 1800;
+            return l1.toString();
+        }
+    }
 }
+
+
+
