@@ -32,6 +32,7 @@ public class HibernateHelper {
     private ServiceRegistry serviceRegistry;
     private Configuration config;
     private SQLSourceHelper sqlSourceHelper;
+    private int termNumbers = 1;
 
     /**
      * Constructor to initialize hibernate configuration parameters
@@ -111,7 +112,7 @@ public class HibernateHelper {
                     session.createSQLQuery("select unix_timestamp(now())").setResultTransformer(Transformers.TO_LIST).list();
             currentTime = currentTimeList.get(0).get(0).toString().substring(0, 10);
             currentTime = Integer.toString((Integer.valueOf(currentTime) - 10));
-            currentTime = min(sqlSourceHelper.getCurrentIndex(),currentTime,600);
+            currentTime = min(sqlSourceHelper.getCurrentIndex(), currentTime, 600);
             query = session.createSQLQuery(sqlSourceHelper.buildQuery(currentTime));
 
 //            if (sqlSourceHelper.getMaxRows() != 0) {
@@ -133,6 +134,7 @@ public class HibernateHelper {
 
         if (!rowsList.isEmpty()) {
             sqlSourceHelper.setCurrentIndex(currentTime);
+            termNumbers = 1;
         }
 
         return rowsList;
@@ -151,10 +153,11 @@ public class HibernateHelper {
     private String min(String str1, String str2, int term) {
         Long l1 = Long.valueOf(str1);
         Long l2 = Long.valueOf(str2);
-        if (l1 + 1800 >= l2) {
+        if (l1 + term * termNumbers >= l2) {
             return l2.toString();
         } else {
-            l1 += 1800;
+            l1 += term * termNumbers;
+            termNumbers++;
             return l1.toString();
         }
     }
