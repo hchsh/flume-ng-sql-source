@@ -129,7 +129,7 @@ public class SQLSourceHelper {
             return "SELECT " + columnsToSelect + " FROM " + table;
         } else {
             if (customQuery.contains("$@$")) {
-                LOG.info("SQL: " + customQuery + " and the currentIdex: " + currentIndex);
+//                LOG.info("currentIdex: " + currentIndex);
                 return customQuery.replace("$@$", currentIndex);
             } else {
                 return customQuery;
@@ -142,7 +142,7 @@ public class SQLSourceHelper {
 
             String sql =
                     customQuery.replace("$@$", currentIndex) + "and " + columnsToSelect + " < FROM_UNIXTIME(" + currentTime + ")";
-            LOG.info("SQL: " + sql);
+            LOG.info("old: " + currentIndex + ", new: " + currentTime);
             return sql;
         } else {
             return customQuery;

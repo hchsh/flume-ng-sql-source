@@ -106,8 +106,8 @@ public class HibernateHelper {
         }
 
         if (sqlSourceHelper.isCustomQuerySet()) {
-            LOG.warn("This Plugin is altered by hcc.Because of removing the MaxRows ,please make the batch not too " +
-                    "big ...");
+//            LOG.warn("This Plugin is altered by hcc.Because of removing the MaxRows ,please make the batch not too " +
+//                    "big ...");
             List<List<Object>> currentTimeList =
                     session.createSQLQuery("select unix_timestamp(now())").setResultTransformer(Transformers.TO_LIST).list();
             currentTime = currentTimeList.get(0).get(0).toString().substring(0, 10);
